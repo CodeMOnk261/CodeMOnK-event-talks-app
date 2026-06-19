@@ -7,6 +7,7 @@ from text_automation.utils.file_io import read_file, write_file
 from text_automation.utils.text_cleaner import clean_text_pipeline
 from text_automation.processors.analyzer import analyze_text_statistics
 from text_automation.processors.formatter import wrap_text, align_text
+from text_automation.processors.speech import speak_text, save_text_to_audio
 
 def run_pipeline(args):
     # 1. Read input file
@@ -71,6 +72,15 @@ def run_pipeline(args):
             print(processed_text)
             print("----------------------\n")
 
+    # 6. Text-to-Speech execution
+    if args.speak:
+        print("Speaking text aloud...")
+        speak_text(processed_text, rate=args.speech_rate)
+
+    if args.audio:
+        print(f"Generating audio file at '{args.audio}'...")
+        save_text_to_audio(processed_text, args.audio, rate=args.speech_rate)
+
 def main():
     parser = argparse.ArgumentParser(description="Python Text Automation Command-Line Tool")
     parser.add_argument("input", help="Path to the input text file")
@@ -80,6 +90,9 @@ def main():
     parser.add_argument("-w", "--wrap", action="store_true", help="Wrap text lines to column width")
     parser.add_argument("--wrap-width", type=int, help="Override default line wrapping width (default: 70)")
     parser.add_argument("--align", choices=['left', 'center', 'right'], help="Align text lines")
+    parser.add_argument("--speak", action="store_true", help="Read the text aloud using Text-to-Speech")
+    parser.add_argument("--audio", help="Output file path to save spoken text as audio (e.g. out.mp3)")
+    parser.add_argument("--speech-rate", type=int, default=150, help="Speech rate (words per minute) for audio output (default: 150)")
 
     args = parser.parse_args()
     
