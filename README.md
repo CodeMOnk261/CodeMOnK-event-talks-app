@@ -6,6 +6,7 @@ A modern, responsive, and visually stunning dashboard designed to fetch, parse, 
 
 ## ✨ Features
 
+*   **⭐ Bookmark / Saved Updates**: Save specific release items locally (using the browser's `localStorage`). Starred items are persisted across sessions, and a new **★ Saved** filter badge allows you to view *only* your bookmarked updates grouped by date.
 *   **⚡ Real-Time Search & Highlight**: Search through dates, types, or content. Matching keywords are instantly highlighted dynamically in the text.
 *   **🏷️ Categorized Release Badges**: Clean, color-coded badges classifying updates into:
     *   `Feature` (Green)
@@ -80,8 +81,8 @@ Ensure you have **Python 3.8+** installed on your system.
 
 ```text
 ├── static/
-│   ├── app.js         # State management, search, filtering, and sharing triggers
-│   └── style.css      # Glassmorphic layout, themes, animations, and badges
+│   ├── app.js         # State management, search, filtering, bookmarks, and sharing
+│   └── style.css      # Glassmorphic layout, themes, animations, badges, and bookmarks
 ├── templates/
 │   └── index.html     # HTML structure and main dashboard view
 ├── app.py             # Flask app serving templates, fetching, and caching RSS feeds
