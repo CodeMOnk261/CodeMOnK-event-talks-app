@@ -11,7 +11,7 @@ let state = {
 // --- DOM Elements ---
 const elements = {
     body: document.body,
-    themeToggleBtn: document.getElementById('theme-toggle-btn'),
+    themeSwitchCheckbox: document.getElementById('theme-switch-checkbox'),
     refreshBtn: document.getElementById('refresh-btn'),
     refreshIcon: document.getElementById('refresh-icon'),
     searchInput: document.getElementById('search-input'),
@@ -51,14 +51,20 @@ function initTheme() {
     if (savedTheme === 'light') {
         elements.body.classList.remove('dark-theme');
         elements.body.classList.add('light-theme');
+        if (elements.themeSwitchCheckbox) {
+            elements.themeSwitchCheckbox.checked = true;
+        }
     } else {
         elements.body.classList.add('dark-theme');
         elements.body.classList.remove('light-theme');
+        if (elements.themeSwitchCheckbox) {
+            elements.themeSwitchCheckbox.checked = false;
+        }
     }
 }
 
 function toggleTheme() {
-    if (elements.body.classList.contains('dark-theme')) {
+    if (elements.themeSwitchCheckbox && elements.themeSwitchCheckbox.checked) {
         elements.body.classList.remove('dark-theme');
         elements.body.classList.add('light-theme');
         localStorage.setItem('theme', 'light');
@@ -71,8 +77,10 @@ function toggleTheme() {
 
 // --- Event Listeners ---
 function setupEventListeners() {
-    // Theme toggle
-    elements.themeToggleBtn.addEventListener('click', toggleTheme);
+    // Theme toggle checkbox change
+    if (elements.themeSwitchCheckbox) {
+        elements.themeSwitchCheckbox.addEventListener('change', toggleTheme);
+    }
 
     // Refresh feed
     elements.refreshBtn.addEventListener('click', () => {
@@ -113,6 +121,12 @@ function setupEventListeners() {
         state.sortOrder = e.target.value;
         applyFiltersAndRender();
     });
+
+    // Export CSV
+    const exportBtn = document.getElementById('export-csv-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportToCSV);
+    }
 
     // Reset filters
     elements.resetFiltersBtn.addEventListener('click', resetAllFilters);
@@ -333,6 +347,12 @@ function renderReleases() {
                             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                         </svg>
                     </button>
+                    <button class="btn-copy-card" onclick="copyCardText('${anchorId}', this)" title="Copy card updates to clipboard">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
             <div class="card-items-list">
@@ -525,4 +545,92 @@ function resetAllFilters() {
 
     toggleClearSearchButton();
     applyFiltersAndRender();
+}
+
+window.copyCardText = function(cardId, buttonEl) {
+    try {
+        const card = document.getElementById(cardId);
+        const dateText = card.querySelector('.release-date').textContent.trim();
+        const items = card.querySelectorAll('.release-item');
+        
+        let textToCopy = `BigQuery Releases - ${dateText}\n`;
+        textToCopy += '='.repeat(textToCopy.length - 1) + '\n\n';
+        
+        items.forEach((item, idx) => {
+            const type = item.querySelector('.type-badge').textContent.trim();
+            const desc = item.querySelector('.item-description').textContent.trim().replace(/\s+/g, ' ');
+            textToCopy += `[${type}] ${desc}\n\n`;
+        });
+        
+        textToCopy += `Source: https://docs.cloud.google.com/bigquery/docs/release-notes`;
+        
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showToast('Card updates copied to clipboard!');
+        }).catch(err => {
+            console.error('Could not copy card text: ', err);
+        });
+    } catch (err) {
+        console.error('Error copying card text: ', err);
+    }
+};
+
+function exportToCSV() {
+    try {
+        if (!state.filteredReleases || state.filteredReleases.length === 0) {
+            showToast('No release notes available to export.');
+            return;
+        }
+
+        const csvRows = [];
+        // Header
+        csvRows.push(['Date', 'Type', 'Link', 'Description']);
+
+        // Rows
+        state.filteredReleases.forEach(entry => {
+            entry.items.forEach(item => {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = item.html;
+                const plainText = (tempDiv.textContent || tempDiv.innerText || '').replace(/\s+/g, ' ').trim();
+                
+                const escapedText = plainText.replace(/"/g, '""');
+                const escapedType = item.type.replace(/"/g, '""');
+                const escapedDate = entry.date.replace(/"/g, '""');
+                const escapedLink = entry.link.replace(/"/g, '""');
+
+                csvRows.push([
+                    `"${escapedDate}"`,
+                    `"${escapedType}"`,
+                    `"${escapedLink}"`,
+                    `"${escapedText}"`
+                ]);
+            });
+        });
+
+        const csvContent = csvRows.map(row => row.join(',')).join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        
+        let filename = 'bigquery_release_notes';
+        if (state.selectedType !== 'all') {
+            filename += `_${state.selectedType.toLowerCase()}`;
+        }
+        if (state.searchQuery) {
+            filename += `_${state.searchQuery.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        }
+        filename += '.csv';
+        
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('CSV exported successfully!');
+    } catch (err) {
+        console.error('Error exporting to CSV:', err);
+        showToast('Export failed.');
+    }
 }
