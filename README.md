@@ -6,8 +6,11 @@ A modern, responsive, and visually stunning dashboard designed to fetch, parse, 
 
 ## ✨ Features
 
+*   **🌗 Premium Sliding Theme Switch**: An elegant, glassmorphic toggle switch in the header that swaps the color scheme between Dark and Light mode by dynamically overriding CSS root variables. Theme selections are saved to `localStorage`.
+*   **📄 Copy Card Updates**: Next to the permalink icon on each card, a new copy button extracts and formats the full plain-text list of release items for that specific date, making it easy to copy to the clipboard.
+*   **📊 Export to CSV**: Located next to the sorting dropdown in the control panel. Exports the *currently filtered* list of release notes (including Date, Type, Link, and plain-text Description) directly into a CSV file, respecting active search and type filters.
 *   **⭐ Bookmark / Saved Updates**: Save specific release items locally (using the browser's `localStorage`). Starred items are persisted across sessions, and a new **★ Saved** filter badge allows you to view *only* your bookmarked updates grouped by date.
-*   **⚡ Real-Time Search & Highlight**: Search through dates, types, or content. Matching keywords are instantly highlighted dynamically in the text.
+*   **⚡ Real-Time Search & Highlight**: Search through dates, types, or content. Keywords are highlighted dynamically in the text.
 *   **🏷️ Categorized Release Badges**: Clean, color-coded badges classifying updates into:
     *   `Feature` (Green)
     *   `Issue` (Red)
@@ -15,9 +18,8 @@ A modern, responsive, and visually stunning dashboard designed to fetch, parse, 
     *   `Deprecation` (Yellow)
     *   `General` (Grey)
 *   **🔄 Force Refresh**: A built-in refresh button in the header that bypasses the 15-minute backend caching layer to pull updates live from Google Cloud.
-*   **🐦 X (Twitter) Sharing**: Instantly share any specific update card to Twitter/X with auto-formatted date, category details, description snippets, and pre-selected hashtags.
+*   **🐦 X (Twitter) Sharing**: Instantly share any specific update card to Twitter/X with auto-formatted date, category details, description snippets, and hashtags.
 *   **🔗 Deep Linking**: Copy permalinks to specific date cards for quick reference and collaboration.
-*   **🌗 Adaptive Themes**: Fully featured Dark and Light modes that save your visual preference across sessions.
 
 ---
 
@@ -81,8 +83,8 @@ Ensure you have **Python 3.8+** installed on your system.
 
 ```text
 ├── static/
-│   ├── app.js         # State management, search, filtering, bookmarks, and sharing
-│   └── style.css      # Glassmorphic layout, themes, animations, badges, and bookmarks
+│   ├── app.js         # State management, search, filtering, bookmarks, CSV exports, copy, theme
+│   └── style.css      # Glassmorphic layout, themes, animations, badges, switch, buttons
 ├── templates/
 │   └── index.html     # HTML structure and main dashboard view
 ├── app.py             # Flask app serving templates, fetching, and caching RSS feeds
