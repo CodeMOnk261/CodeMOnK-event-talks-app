@@ -561,6 +561,7 @@ body.light-theme .moon-icon {
     display: flex;
     align-items: flex-start;
     flex-shrink: 0;
+    gap: 0.5rem;
 }
 
 .btn-tweet {
@@ -581,6 +582,33 @@ body.light-theme .moon-icon {
     background: rgba(29, 155, 240, 0.08);
     border-color: rgba(29, 155, 240, 0.35);
     transform: translateY(-1px);
+}
+
+.btn-star {
+    background: transparent;
+    border: 1px solid var(--card-border);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.btn-star:hover {
+    color: #fbbf24;
+    background: rgba(251, 191, 36, 0.08);
+    border-color: rgba(251, 191, 36, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-star.starred {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.4);
+    background: rgba(251, 191, 36, 0.05);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.15);
 }
 
 /* Badges for Release item Types */

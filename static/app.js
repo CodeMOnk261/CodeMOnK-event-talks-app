@@ -4,7 +4,8 @@ let state = {
     filteredReleases: [],
     searchQuery: '',
     selectedType: 'all',
-    sortOrder: 'newest'
+    sortOrder: 'newest',
+    savedItems: []
 };
 
 // --- DOM Elements ---
@@ -29,9 +30,20 @@ const elements = {
 // --- Initial Setup ---
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    loadSavedItems();
     fetchReleaseNotes();
     setupEventListeners();
 });
+
+function loadSavedItems() {
+    try {
+        const saved = localStorage.getItem('savedReleases');
+        state.savedItems = saved ? JSON.parse(saved) : [];
+    } catch (err) {
+        console.error('Error loading saved items:', err);
+        state.savedItems = [];
+    }
+}
 
 // --- Theme Handler ---
 function initTheme() {
@@ -172,29 +184,58 @@ function showStatusBanner(message) {
 function applyFiltersAndRender() {
     let results = [];
 
-    // Filter by type & search text
-    state.allReleases.forEach(entry => {
-        // Filter items within the entry
-        const matchingItems = entry.items.filter(item => {
-            // Type Match
-            const matchesType = (state.selectedType === 'all' || item.type.toLowerCase() === state.selectedType.toLowerCase());
-            
-            // Search Match
-            const matchesSearch = !state.searchQuery || 
-                entry.date.toLowerCase().includes(state.searchQuery) ||
+    if (state.selectedType === 'saved') {
+        const grouped = {};
+        state.savedItems.forEach(item => {
+            const matchesSearch = !state.searchQuery ||
+                item.date.toLowerCase().includes(state.searchQuery) ||
                 item.type.toLowerCase().includes(state.searchQuery) ||
                 item.html.toLowerCase().includes(state.searchQuery);
 
-            return matchesType && matchesSearch;
+            if (matchesSearch) {
+                if (!grouped[item.date]) {
+                    grouped[item.date] = {
+                        date: item.date,
+                        link: item.link,
+                        updated: item.date,
+                        items: []
+                    };
+                }
+                const exists = grouped[item.date].items.some(x => x.type === item.type && x.html === item.html);
+                if (!exists) {
+                    grouped[item.date].items.push({
+                        type: item.type,
+                        html: item.html
+                    });
+                }
+            }
         });
+        results = Object.values(grouped);
+    } else {
+        // Filter by type & search text
+        state.allReleases.forEach(entry => {
+            // Filter items within the entry
+            const matchingItems = entry.items.filter(item => {
+                // Type Match
+                const matchesType = (state.selectedType === 'all' || item.type.toLowerCase() === state.selectedType.toLowerCase());
+                
+                // Search Match
+                const matchesSearch = !state.searchQuery || 
+                    entry.date.toLowerCase().includes(state.searchQuery) ||
+                    item.type.toLowerCase().includes(state.searchQuery) ||
+                    item.html.toLowerCase().includes(state.searchQuery);
 
-        if (matchingItems.length > 0) {
-            results.push({
-                ...entry,
-                items: matchingItems
+                return matchesType && matchesSearch;
             });
-        }
-    });
+
+            if (matchingItems.length > 0) {
+                results.push({
+                    ...entry,
+                    items: matchingItems
+                });
+            }
+        });
+    }
 
     // Sort order
     if (state.sortOrder === 'newest') {
@@ -302,6 +343,11 @@ function renderReleases() {
             const badgeClass = item.type.toLowerCase();
             const highlightedType = highlightText(item.type, state.searchQuery);
             const highlightedHtml = highlightText(item.html, state.searchQuery);
+            
+            // Check if this item is bookmarked/saved
+            const isStarred = isItemSaved(entry.date, item.type, item.html);
+            const starFill = isStarred ? 'currentColor' : 'none';
+            const starClass = isStarred ? 'starred' : '';
 
             headerHtml += `
                 <div class="release-item">
@@ -312,6 +358,11 @@ function renderReleases() {
                         ${highlightedHtml}
                     </div>
                     <div class="item-actions">
+                        <button class="btn-star ${starClass}" onclick="toggleSaveItem('${entry.date}', '${entry.link}', '${item.type.replace(/'/g, "\\'")}', this)" title="Bookmark update">
+                            <svg class="star-icon" width="14" height="14" viewBox="0 0 24 24" fill="${starFill}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                        </button>
                         <button class="btn-tweet" onclick="tweetRelease('${entry.date}', '${item.type.replace(/'/g, "\\'")}', this)" title="Tweet this update">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
@@ -329,14 +380,24 @@ function renderReleases() {
 }
 
 // --- Utilities ---
+function isItemSaved(date, type, html) {
+    const key = `${date}_${type}_${html.trim()}`;
+    return state.savedItems.some(item => `${item.date}_${item.type}_${item.html.trim()}` === key);
+}
+
+function showToast(message) {
+    const toast = elements.toastNotification;
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
 window.copyPermalink = function(anchorId) {
     const url = `${window.location.origin}${window.location.pathname}#${anchorId}`;
     navigator.clipboard.writeText(url).then(() => {
-        const toast = elements.toastNotification;
-        toast.classList.add('show');
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 3000);
+        showToast('Link copied to clipboard!');
     }).catch(err => {
         console.error('Could not copy link: ', err);
     });
@@ -363,6 +424,88 @@ window.tweetRelease = function(date, type, buttonEl) {
         window.open(tweetUrl, '_blank', 'noopener,noreferrer');
     } catch (err) {
         console.error('Error sharing to Twitter: ', err);
+    }
+};
+
+window.toggleSaveItem = function(date, link, type, buttonEl) {
+    try {
+        const releaseItem = buttonEl.closest('.release-item');
+        const descEl = releaseItem.querySelector('.item-description');
+        
+        const rawText = descEl.textContent || descEl.innerText || '';
+        const cleanText = rawText.replace(/\s+/g, ' ').trim();
+        
+        let matchedItem = null;
+        
+        // Search in current feed
+        for (const entry of state.allReleases) {
+            if (entry.date === date) {
+                for (const item of entry.items) {
+                    if (item.type === type) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = item.html;
+                        const itemText = (tempDiv.textContent || tempDiv.innerText || '').replace(/\s+/g, ' ').trim();
+                        if (itemText === cleanText) {
+                            matchedItem = item;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (matchedItem) break;
+        }
+
+        // Fallback search in already saved items
+        if (!matchedItem) {
+            for (const item of state.savedItems) {
+                if (item.date === date && item.type === type) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = item.html;
+                    const itemText = (tempDiv.textContent || tempDiv.innerText || '').replace(/\s+/g, ' ').trim();
+                    if (itemText === cleanText) {
+                        matchedItem = item;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (!matchedItem) {
+            console.error('Could not match item to save.');
+            return;
+        }
+
+        const key = `${date}_${type}_${matchedItem.html.trim()}`;
+        const index = state.savedItems.findIndex(item => `${item.date}_${item.type}_${item.html.trim()}` === key);
+
+        if (index > -1) {
+            // Remove bookmark
+            state.savedItems.splice(index, 1);
+            buttonEl.classList.remove('starred');
+            buttonEl.querySelector('.star-icon').setAttribute('fill', 'none');
+            showToast('Bookmark removed!');
+        } else {
+            // Add bookmark
+            state.savedItems.push({
+                date: date,
+                link: link,
+                type: type,
+                html: matchedItem.html
+            });
+            buttonEl.classList.add('starred');
+            buttonEl.querySelector('.star-icon').setAttribute('fill', 'currentColor');
+            showToast('Bookmark saved!');
+        }
+
+        // Save state
+        localStorage.setItem('savedReleases', JSON.stringify(state.savedItems));
+
+        // Re-render immediately if we are looking at the saved filter
+        if (state.selectedType === 'saved') {
+            applyFiltersAndRender();
+        }
+    } catch (err) {
+        console.error('Error toggling save item:', err);
     }
 };
 
