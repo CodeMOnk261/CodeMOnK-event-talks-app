@@ -6,12 +6,16 @@ def get_engine():
     # Initialize pyttsx3 engine on-demand
     return pyttsx3.init()
 
-def speak_text(text, rate=150, volume=1.0):
+def speak_text(text, rate=150, volume=1.0, voice_index=None):
     """Speaks the input text aloud using local text-to-speech engine."""
     try:
         engine = get_engine()
         engine.setProperty('rate', rate)
         engine.setProperty('volume', volume)
+        if voice_index is not None:
+            voices = engine.getProperty('voices')
+            if 0 <= voice_index < len(voices):
+                engine.setProperty('voice', voices[voice_index].id)
         engine.say(text)
         engine.runAndWait()
         return True
@@ -19,7 +23,7 @@ def speak_text(text, rate=150, volume=1.0):
         print(f"Error executing speech: {e}")
         return False
 
-def save_text_to_audio(text, output_filepath, rate=150, volume=1.0):
+def save_text_to_audio(text, output_filepath, rate=150, volume=1.0, voice_index=None):
     """Converts the input text into a spoken audio file (e.g. mp3 or wav)."""
     try:
         # Create output directory if it does not exist
@@ -30,6 +34,10 @@ def save_text_to_audio(text, output_filepath, rate=150, volume=1.0):
         engine = get_engine()
         engine.setProperty('rate', rate)
         engine.setProperty('volume', volume)
+        if voice_index is not None:
+            voices = engine.getProperty('voices')
+            if 0 <= voice_index < len(voices):
+                engine.setProperty('voice', voices[voice_index].id)
         engine.save_to_file(text, output_filepath)
         engine.runAndWait()
         print(f"Audio file successfully created at: {output_filepath}")

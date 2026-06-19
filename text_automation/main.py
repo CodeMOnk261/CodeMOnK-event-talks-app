@@ -75,11 +75,11 @@ def run_pipeline(args):
     # 6. Text-to-Speech execution
     if args.speak:
         print("Speaking text aloud...")
-        speak_text(processed_text, rate=args.speech_rate)
+        speak_text(processed_text, rate=args.speech_rate, voice_index=args.voice)
 
     if args.audio:
         print(f"Generating audio file at '{args.audio}'...")
-        save_text_to_audio(processed_text, args.audio, rate=args.speech_rate)
+        save_text_to_audio(processed_text, args.audio, rate=args.speech_rate, voice_index=args.voice)
 
 def main():
     parser = argparse.ArgumentParser(description="Python Text Automation Command-Line Tool")
@@ -93,6 +93,7 @@ def main():
     parser.add_argument("--speak", action="store_true", help="Read the text aloud using Text-to-Speech")
     parser.add_argument("--audio", help="Output file path to save spoken text as audio (e.g. out.mp3)")
     parser.add_argument("--speech-rate", type=int, default=150, help="Speech rate (words per minute) for audio output (default: 150)")
+    parser.add_argument("--voice", type=int, default=None, help="Voice ID selection (e.g. 0 for Microsoft David, 1 for Microsoft Zira)")
 
     args = parser.parse_args()
     
